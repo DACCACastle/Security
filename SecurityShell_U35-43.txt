@@ -36,6 +36,31 @@ fi
 echo
 echo >> $ApacheLog 2>&1
 
+echo "U-37 Apache 상위 디렉터리 접근 금지"
+echo "U-37 Apache 상위 디렉터리 접근 금지" >> $ApacheLog 2>&1
+
+ApacheAuth=`cat /etc/httpd/conf/httpd.conf  | grep AllowOverride | sed -n '1p' | awk '{print $2}'`
+
+if [ $ApacheAuth = AuthConfig ]
+	then
+		echo "    ==> [안전] 디렉터리별 사용자 인증이 설정되어 있습니다" >> $ApacheLog 2>&1
+		echo >> $ApacheLog 2>&1
+		echo "    사용자 인증이 필요한 디렉터리에 .htaccess 파일 생성되어 있습니다." >> $ApacheLog 2>&1
+		echo "    ***************************************************************" >> $ApacheLog 2>&1
+		echo "    *     지시자     *                     설명                  **" >> $ApacheLog 2>&1
+		echo "    ***************************************************************" >> $ApacheLog 2>&1
+		echo "    * AuthType       *  인증 형태 (Baisc / Digest)                *" >> $ApacheLog 2>&1
+		echo "    * AuthName       *  인증 영역 (웹 브라우저의 인증창에 표시)   *" >> $ApacheLog 2>&1
+		echo "    * AuthUserFile   *  사용자 패스워드 파일의 위치               *" >> $ApacheLog 2>&1
+		echo "    * AuthGroupFile  *  그룹 파일의 위치 (옵션)                   *" >> $ApacheLog 2>&1
+		echo "    * Require        *  접근을 허용할 사용자 / 그룹 정의          *" >> $ApacheLog 2>&1
+		echo "    ***************************************************************" >> $ApacheLog 2>&1
+	else
+		echo "    ==> [취약]  디렉터리별 사용자 인증이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+fi
+
+echo
+echo >> $ApacheLog 2>&1
 
 echo "U-38 Apache 불필요한 파일 제거"
 echo "U-38 Apache 불필요한 파일 제거" >> $ApacheLog 2>&1
@@ -64,11 +89,34 @@ fi
 echo
 echo >> $ApacheLog 2>&1
 
+echo "U-40 Apache 파일 업로드 및 다운로드 제한"
+echo "U-40 Apache 파일 업로드 및 다운로드 제한" >> $ApacheLog 2>&1
+
+UpSpeed=`cat /etc/opt/remi/php74/php.ini 2>/dev/null |  grep post_max_size | awk '{print $3}'`
+DownSpeed=`cat /etc/httpd/conf/httpd.conf 2>/dev/null | grep LimitRequestBody | awk '{print $2}'`
+
+if [ $UpSpeed ]
+	then
+		echo "    ==> [안전] 업로드 가능한 파일의 최대 용량   : "$UpSpeed >> $ApacheLog 2>&1
+	else
+		echo "    ==> [취약] 업로드 가능한 파일의 최대 용량   : 제한없음" >> $ApacheLog 2>&1
+fi
+
+if [ $DownSpeed ]
+	then
+		echo "    ==> [안전] 다운로드 가능한 파일의 최대 용량 : "$DownSpeed >> $ApacheLog 2>&1
+	else
+		echo "    ==> [취약] 다운로드 가능한 파일의 최대 용량 : 제한없음" >> $ApacheLog 2>&1
+fi
+
+echo
+echo >> $ApacheLog 2>&1
+
 
 echo "U-41 Apache 웹 서비스 영역 분리"
 echo "U-41 Apache 웹 서비스 영역 분리" >> $ApacheLog 2>&1
 APDocRoot=`cat /etc/httpd/conf/httpd.conf | grep DocumentRoot | sed -n '2p' | awk '{print $2}'`
-APhtml="/var/www/html"
+APhtml="/var/it/"
 
 if [ $APDocRoot=$APhtml ]; then
 		echo "      [취약] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
@@ -76,35 +124,25 @@ if [ $APDocRoot=$APhtml ]; then
 		echo "      [안전] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
 fi
 echo
-echo
-echo >> $ApacheLog 2>&1
 echo >> $ApacheLog 2>&1
 
 
-echo "----------------------------------------------- 패치 관리 -----------------------------------------------"
 echo "----------------------------------------------- 패치 관리 -----------------------------------------------" >> $ApacheLog 2>&1
 echo "U-42 최신 보안패치 및 벤더 권고사항 적용"
 echo "U-42 최신 보안패치 및 벤더 권고사항 적용" >> $ApacheLog 2>&1
 echo "      [권장] 'yum update (-y)'를 통해 설치된 패키지의 최신 패치를 설치" >> $ApacheLog 2>&1
-$PathUpdate
 echo
-echo
-echo "-----------------------------------------------= 패키지를 최신화 하였습니다 -----------------------------------------------"
 echo >> $ApacheLog 2>&1
 echo >> $ApacheLog 2>&1
 
 
-echo "----------------------------------------------- 로그 관리 -----------------------------------------------"
 echo "----------------------------------------------- 로그 관리 -----------------------------------------------" >> $ApacheLog 2>&1
 echo "U-43 로그의 정기적 검토 및 보고"
 echo "U-43 로그의 정기적 검토 및 보고" >> $ApacheLog 2>&1
 echo "      [권장] 로그 기록에 대해 정기적 검토, 분석, 이에 대한 리포트 작성 및 보고" >> $ApacheLog 2>&1
 echo
-echo
-echo >> $ApacheLog 2>&1
 echo >> $ApacheLog 2>&1
 
 
-echo "----------------------------------------------- 취약점 체크 종료 ----------------------------------------------" 
-echo "----------------------------------------------- 취약점 체크 종료 ----------------------------------------------" >> $ApacheLog 2>&1
-
+echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------" 
+echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------" >> $ApacheLog 2>&1

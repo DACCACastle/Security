@@ -1,0 +1,109 @@
+#!/bin/sh
+ApacheLog=`hostname`"_Apache_Check_"`date +%F__%T`.txt
+
+echo "U-35 Apache 디렉토리 리스팅 제거"
+echo "U-35. Apache 디렉토리 리스팅 제거" >> $ApacheLog 2>&1
+ApacheOption=`cat /etc/httpd/conf/httpd.conf | grep Options | sed -n '1p'`
+
+if [[ $ApacheOption == *Indexes* ]]
+	then
+		echo "     [취약] 디렉토리 리스팅이 설정되어 있습니다" >> $ApacheLog 2>&1
+	else
+		echo "     [안전] 디렉토리 리스팅이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+fi
+
+echo
+echo >> $ApacheLog 2>&1
+
+
+echo "U-36 Apache 웹 프로세스 권한 제한"
+echo "U-36 Apache 웹 프로세스 권한 제한" >> $ApacheLog 2>&1
+ApacheUser=`cat /etc/httpd/conf/httpd.conf | grep User | sed -n '2p' | awk '{print $2}'`
+ApacheGroup=`cat /etc/httpd/conf/httpd.conf | grep Group | sed -n '2p' | awk '{print $2}'`
+
+if [ "$ApacheUser" != root ]; then
+		echo "      [안전] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
+	else
+		echo "      [취약] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
+fi
+
+if [ "$ApacheGroup" != root ]; then
+		echo "      [안전] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
+	else
+		echo "      [취약] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
+fi
+
+echo
+echo >> $ApacheLog 2>&1
+
+
+echo "U-38 Apache 불필요한 파일 제거"
+echo "U-38 Apache 불필요한 파일 제거" >> $ApacheLog 2>&1
+ApacheCgi=`cat /etc/httpd/conf/httpd.conf | grep -v "^ *#" | grep "<Directory" | grep "cgi-bin" | wc -l`
+echo "      [권장] 웹 서버를 정기적으로 검사하여 불필요한 파일을 제거" >> $ApacheLog 2>&1
+echo >> $ApacheLog 2>&1
+echo "	    [ Apache Home Directory 상에 설정 되어 있는 cgi-bin 삭제 할 것 ]" >> $ApacheLog 2>&1
+if [ $ApacheCgi -eq 0 ]; then
+		echo "      [취약] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있지 않습니다" >> $ApacheLog 2>&1
+	else
+		echo "      [양호] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있습니다"  >> $ApacheLog 2>&1
+fi
+echo
+echo >> $ApacheLog 2>&1
+
+
+echo "U-39 Apache 링크 사용 금지"
+echo "U-39 Apache 링크 사용 금지" >> $ApacheLog 2>&1
+
+if [[ $ApacheOption == *FollowSymLinks* ]]; then
+		echo "      [취약] Apache 상에서 심볼릭 링크 사용이 설정되어 있습니다" >> $ApacheLog 2>&1
+	else
+		echo "      [안전] Apache 상에서 심볼릭 링크 사용이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+fi
+
+echo
+echo >> $ApacheLog 2>&1
+
+
+echo "U-41 Apache 웹 서비스 영역 분리"
+echo "U-41 Apache 웹 서비스 영역 분리" >> $ApacheLog 2>&1
+APDocRoot=`cat /etc/httpd/conf/httpd.conf | grep DocumentRoot | sed -n '2p' | awk '{print $2}'`
+APhtml="/var/www/html"
+
+if [ $APDocRoot=$APhtml ]; then
+		echo "      [취약] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
+	else
+		echo "      [안전] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
+fi
+echo
+echo
+echo >> $ApacheLog 2>&1
+echo >> $ApacheLog 2>&1
+
+
+echo "----------------------------------------------- 패치 관리 -----------------------------------------------"
+echo "----------------------------------------------- 패치 관리 -----------------------------------------------" >> $ApacheLog 2>&1
+echo "U-42 최신 보안패치 및 벤더 권고사항 적용"
+echo "U-42 최신 보안패치 및 벤더 권고사항 적용" >> $ApacheLog 2>&1
+echo "      [권장] 'yum update (-y)'를 통해 설치된 패키지의 최신 패치를 설치" >> $ApacheLog 2>&1
+$PathUpdate
+echo
+echo
+echo "-----------------------------------------------= 패키지를 최신화 하였습니다 -----------------------------------------------"
+echo >> $ApacheLog 2>&1
+echo >> $ApacheLog 2>&1
+
+
+echo "----------------------------------------------- 로그 관리 -----------------------------------------------"
+echo "----------------------------------------------- 로그 관리 -----------------------------------------------" >> $ApacheLog 2>&1
+echo "U-43 로그의 정기적 검토 및 보고"
+echo "U-43 로그의 정기적 검토 및 보고" >> $ApacheLog 2>&1
+echo "      [권장] 로그 기록에 대해 정기적 검토, 분석, 이에 대한 리포트 작성 및 보고" >> $ApacheLog 2>&1
+echo
+echo
+echo >> $ApacheLog 2>&1
+echo >> $ApacheLog 2>&1
+
+
+echo "----------------------------------------------- 취약점 체크 종료 ----------------------------------------------" 
+echo "----------------------------------------------- 취약점 체크 종료 ----------------------------------------------" >> $ApacheLog 2>&1

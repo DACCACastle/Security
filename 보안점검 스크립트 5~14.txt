@@ -1,0 +1,208 @@
+
+
+echo "==============================================="
+echo "[U-05 root홈 디렉터리 권한 및 패스 설정]"
+echo ""
+
+A=`echo $PATH`
+if [[ $A =~ "." ]]; then
+        echo "보안에 취약합니다"
+	echo "환경변수 파일들을 확인하여 .(현재 디렉토리)을 환경변수의 마지막으로 이동하세요!"
+
+else
+        echo "정상입니다"
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-06 파일 및 디렉터리 소유자 설정]"
+echo ""
+
+A=`find / -nouser -print 2>/dev/null`
+B=`find / -nogroup -print 2>/dev/null`
+if [[ $A =~ "/" ]]; then
+        echo "보안 취약점 발견!"
+        echo "`find / -nouser -print 2>/dev/null`"
+        echo "출력되는 파일 및 디렉토리를 삭제 혹은 소유자를 변경하세요."
+elif [[ $B =~ "/" ]]; then
+        echo "보안 취약점 발견!"
+        echo "`find / -nogroup -print 2>/dev/null`"
+        echo "출력되는 파일 및 디렉토리를 삭제 혹은 그룹을 변경하세요."
+else
+        echo "정상입니다!"
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-07 /etc/passwd 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/passwd | awk '{print $1}'`
+B=`ls -l /etc/passwd | awk '{print $3}'`
+if [[ $A != "-rw-r--r--" ]] && [[ $A != "-rw-r--r--." ]]; then
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-08 /etc/shadow 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/shadow | awk '{print $1}'`
+B=`ls -l /etc/shadow | awk '{print $3}'`
+if [[ $A != "-r--------" ]] && [[ $A != "----------" ]]; then
+        echo "권한이 400 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-09 /etc/hosts 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/hosts | awk '{print $1}'`
+B=`ls -l /etc/hosts | awk '{print $3}'`
+if [[ $A != "-rw-------." ]] && [[ $A != "-rw-------" ]]; then
+        echo "권한이 600 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-10 /etc/(x)inetd.conf 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/xinetd.conf | awk '{print $1}'`
+B=`ls -l /etc/xinetd.conf | awk '{print $3}'`
+if [[ $A != "-rw-------." ]] && [[ $A != "-rw-------" ]]; then
+        echo "권한이 600 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-11 /etc/syslog.conf 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/syslog.conf | awk '{print $1}'`
+B=`ls -l /etc/syslog.conf | awk '{print $3}'`
+if [[ $A != "-rw-r--r--." ]] && [[ $A != "-rw-r--r--" ]]; then
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-12 /etc/services 파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -l /etc/services | awk '{print $1}'`
+B=`ls -l /etc/services | awk '{print $3}'`
+if [[ $A != "-rw-r--r--." ]] && [[ $A != "-rw-r--r--" ]]; then
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-13 SUID, SGID, Sticky bit 설정 파일 점검]"
+echo ""
+
+A=`find / -xdev -user root -type f \( -perm -4000 -o -perm -2000 \) -exec ls -al {} \; | awk '{print $9}' >> check.txt`
+B=`sort check.txt | uniq -d > war.log`
+war=war.log
+
+if [ -s $war ]; then
+        echo "보안에 위험한 파일이 존재합니다! 생성된 war.log 파일을 확인하세요."
+
+else
+        echo "정상입니다!"
+fi
+
+clean=`sed -i '15,$d' check.txt`
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""
+
+
+echo "==============================================="
+echo "[U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정]"
+echo ""
+
+A=`ls -la .profile .kshrc .cshrc .bashrc .bash_profile .login .exrc .netrc 2>/dev/null | awk '{print $3}' | uniq | xargs echo | sed 's/ //g'`
+user=`who am i | awk '{print $1}'`
+B=`ls -la .profile .kshrc .cshrc .bashrc .bash_profile .login .exrc .netrc 2>/dev/null | awk '{print $1}' | uniq | xargs echo | sed 's/ //g'`
+
+if [[ $A != "root" ]] && [[ "$A" != $user ]] && [[ $A != "root"$user ]]; then
+        echo "보안 경고! 소유자를 변경하세요."
+elif [[ $B != "-rw-r--r--" ]] && [[ $B != "-rw-r--r--." ]] && [[ $B != "-rw-r--r---rw-r--r--." ]]; then
+        echo "보안 경고! root와 소유자 외에 쓰기 권한이 부여됬는지 확인 후 변경하세요."
+else
+        echo "정상입니다."
+fi
+
+echo ""
+echo "==============================================="
+echo "점검을 완료하였습니다!"
+echo ""

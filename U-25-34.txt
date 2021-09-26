@@ -1,0 +1,89 @@
+U-25 NFS 접근 통제
+=====================
+양호
+U-26 automounted 제거
+=====================
+ automount 활성화 되어 있음 ---[취약]
+U-27 RPC 서비스 확인
+=====================
+/etc/xinetd.d/rpc.cmsd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rusersd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rstatd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rstatdrpc.ttdbserverd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/kcms_server 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/Walld 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rpc.nids 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rpc.ypupdated 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/cachefsd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/sadmind 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/sprayd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rpc.pcnfsd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rexd 서비스를 사용하지 않음---[양호]
+/etc/xinetd.d/rpc.rquotad 서비스를 사용하지 않음---[양호]
+U-29 tftp, talk 서비스 비활성화
+=======================
+/etc/xinetd.d/tftp 서비스 비활성화---[양호]
+/etc/xinetd.d/talk 서비스 비활성화---[양호]
+U-30 Sendmail 버전 점검
+=======================
+telnet: connect to address ::1: Connection refused
+Connection closed by foreign host.
+8.14.7 버전을 사용하고 있습니다.
+U-31 릴레이 제한
+=======================
+SMTP 서비스를 사용하며 릴레이 제한이 설정되어 있습니다.(양호)
+U-32 일반사용자의 Sendmail 실행 방지
+=====================
+일반 사용자의 Sendmail 실행 방지가 설정되어 있음 [양호]
+U-33 보안 버전 패치
+===================
+BIND 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.7 (Extended Support Version) <id:7107de                                                                                                              b>
+U-34 DNS Zone Transfer 설정
+==========================
+허가된 사용자만 허용(양호)
+[root@MyLinux secure_shell]# vi total.sh
+fi
+
+echo "U-32 일반사용자의 Sendmail 실행 방지"
+echo "====================="
+if [ "$UseSend" == "1" ]; then
+        Prevent=$(cat /etc/mail/sendmail.cf | grep PrivacyOptions | grep restrictqrun)
+        if [ -z "$Prevent" ]; then
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있지 않음 [취약]"
+        else
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있음 [양호]"
+        fi
+else
+        echo "SMTP 서비스 사용하지 않음 [양호]"
+fi
+
+echo "U-33 보안 버전 패치"
+echo "==================="
+UseDns=$(ps -ef | grep named | awk '{print $3}' | sed -n -e '1p' )
+if [ "$UseDns" == "1" ]; then
+        named -v > version.log
+        cat version.log
+else
+        echo " DNS 사용하지 않음 [양호]"
+fi
+
+echo "U-34 DNS Zone Transfer 설정"
+echo "=========================="
+if [ "$UseDns" == "1"  ]; then
+        ps -ef | grep named >> tmp.log
+        if [ -f /etc/named.rfc1912.zones ];then
+        Any=$(cat /etc/named.rfc1912.zones | grep 'allow-transfer' | awk '{print $3}')
+                if [ "$Any" != 'any;' ];then
+                        echo "허가된 사용자만 허용(양호)"
+                else
+                        echo "모든 사용자 허용(취약)"
+                fi
+        else
+                echo "/etc/named.rfc1912.zones 파일이 존재하지 않음"
+        fi
+        cat /etc/named.conf | grep 'allow-transfer'
+        rm tmp.log
+else
+        echo "DNS 서비스 미사용 중(양호)"
+fi
+

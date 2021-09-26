@@ -1,0 +1,157 @@
+#!/bin/sh
+
+echo "U-25 NFS 접근 통제"
+echo "====================="
+No=$(cat /etc/exports | egrep "\*|no_root_squash")
+
+if [ -n "$No" ]; then
+        echo "보안 위험"
+else
+        echo "양호"
+fi
+
+echo "U-26 automounted 제거"
+echo "====================="
+NoAuto=$(ps -ef | grep automount |  awk '{print $3}' | sed -n -e '1p')
+
+if [ $NoAuto == "1" ]; then
+        echo " automount 활성화 되어 있음 ---[취약]"
+else
+        echo " [양호]"
+fi
+
+echo "U-27 RPC 서비스 확인"
+echo "====================="
+
+cmsdf=/etc/xinetd.d/rpc.cmsd
+rusersdf=/etc/xinetd.d/rusersd
+rstatdf=/etc/xinetd.d/rstatd
+dbserverdf=/etc/xinetd.d/rstatdrpc.ttdbserverd
+kcmsf=/etc/xinetd.d/kcms_server
+Walldf=/etc/xinetd.d/Walld
+NIDSf=/etc/xinetd.d/rpc.nids
+updatedf=/etc/xinetd.d/rpc.ypupdated
+Cachefsdf=/etc/xinetd.d/cachefsd
+Sadmindf=/etc/xinetd.d/sadmind
+Spraydf=/etc/xinetd.d/sprayd
+pcnfsdf=/etc/xinetd.d/rpc.pcnfsd
+rexdf=/etc/xinetd.d/rexd
+rquotadf=/etc/xinetd.d/rpc.rquotad
+
+arr1=($cmsdf $rusersdf $rstatdf $dbserverdf $kcmsf $Walldf $NIDSf $updatedf $Cachefsdf $Sadmindf $Spraydf $pcnfsdf $rexdf $rquotadf)
+for li in ${arr1[@]}; do
+        if [ -e $li ]; then
+
+                cmsd=$(cat $cmsdf | grep "disable = no")
+                rusersd=$(cat $rusersdf | grep "disable = no")
+                rstatd=$(cat $rstatdf | grep "disable = no")
+                dbserverd=$(cat $dbserverdf | grep "disable = no")
+                kcms=$(cat $kcmsf | grep "disable = no")
+                Walld=$(cat $Walldf | grep "disable = no")
+                NIDS=$(cat $NIDSf | grep "disable = no")
+                updated=$(cat $updatedf | grep "disable = no")
+                Cachefsd=$(cat $Cachefsdf | grep "disable = no")
+                Sadmind=$(cat $Sadmindf | grep "disable = no")
+                Sprayd=$(cat $Spraydf | grep "disable = no")
+                pcnfsd=$(cat $pcnfsdf | grep "disable = no")
+                rexd=$(cat $rexdf | grep "disable = no")
+                rquotad=$(cat $rquotadf | grep "disable = no")
+
+                arr=("$cmsd","$rusersd","$rstatd","$dbserverd","$kcms","$Walld","$NIDS","$updated","$Cachefsd","$Sadmind","$Sprayd","$pcnfsd","$rexd","$rquotad")
+
+                for list in "${arr[@]}"; do
+                        if [ -z "list[@]" ]; then
+                                echo "정상"
+                        else
+                                echo "취약"
+                        fi
+                done
+        else
+                echo "$li 서비스를 사용하지 않음---[양호] "
+        fi
+done
+echo "U-29 tftp, talk 서비스 비활성화"
+echo "======================="
+tftp=/etc/xinetd.d/tftp
+talk=/etc/xinetd.d/talk
+
+arr=($tftp $talk )
+for list in "${arr[@]}"; do
+        if [ -f $arr1 ]; then
+                echo "$list 서비스 활성화 중---[취약]"
+        else
+                echo "$list 서비스 비활성화---[양호]"
+        fi
+done
+
+
+
+echo "U-30 Sendmail 버전 점검"
+echo "======================="
+UseSend=$(ps -ef | grep sendmail | grep smmsp |  awk '{print $3}')
+if [ "$UseSend" == "1" ]; then
+        echo quit | sleep 1 | telnet localhost 25 > sendmail.log
+        V=`cat sendmail.log | awk '{print $5}' | grep -v "^$" | awk -F/ '{print $1}'`
+        echo "$V 버전을 사용하고 있습니다."
+else
+        echo "Sendmail을 사용하고 있지 않습니다.[양호]"
+fi
+
+echo "U-31 릴레이 제한"
+echo "======================="
+FILE=/etc/mail/sendmail.cf
+if [ "$UseSend" == "1" ]; then
+        CHECK=`cat $FILE | grep "R$\*" | grep "Relaying denied" | cut -c 1`
+
+        if [ $CHECK == '#' ] ; then
+                echo "SMTP 서비스를 사용하며 릴레이 제한이 설정되어 있지 않습니다.(취약)"
+        else
+                echo "SMTP 서비스를 사용하며 릴레이 제한이 설정되어 있습니다.(양호)"
+
+        fi
+else
+        echo "Sendmail을 사용하고 있지 않습니다.[양호]"
+fi
+
+echo "U-32 일반사용자의 Sendmail 실행 방지"
+echo "====================="
+if [ "$UseSend" == "1" ]; then
+        Prevent=$(cat /etc/mail/sendmail.cf | grep PrivacyOptions | grep restrictqrun)
+        if [ -z "$Prevent" ]; then
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있지 않음 [취약]"
+        else
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있음 [양호]"
+        fi
+else
+        echo "SMTP 서비스 사용하지 않음 [양호]"
+fi
+
+echo "U-33 보안 버전 패치"
+echo "==================="
+UseDns=$(ps -ef | grep named | awk '{print $3}' | sed -n -e '1p' )
+if [ "$UseDns" == "1" ]; then
+        named -v > version.log
+        cat version.log
+else
+        echo " DNS 사용하지 않음 [양호]"
+fi
+
+echo "U-34 DNS Zone Transfer 설정"
+echo "=========================="
+if [ "$UseDns" == "1"  ]; then
+        ps -ef | grep named >> tmp.log
+        if [ -f /etc/named.rfc1912.zones ];then
+        Any=$(cat /etc/named.rfc1912.zones | grep 'allow-transfer' | awk '{print $3}')
+                if [ "$Any" != 'any;' ];then
+                        echo "허가된 사용자만 허용(양호)"
+                else
+                        echo "모든 사용자 허용(취약)"
+                fi
+        else
+                echo "/etc/named.rfc1912.zones 파일이 존재하지 않음"
+        fi
+        cat /etc/named.conf | grep 'allow-transfer'
+        rm tmp.log
+else
+        echo "DNS 서비스 미사용 중(양호)"
+fi

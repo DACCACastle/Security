@@ -1,0 +1,719 @@
+■ 스크립트 디렉토리
+/root/scripts/{function.sh,U-01.sh}
+
+# mkdir -p /root/scripts
+
+# PATH=$PATH:/root/scripts(~/.bash_profile)
+
+# alias s='chmod 700 /root/scripts/*.sh'(~/.bashrc)
+
+# . ~/.bash_profile
+
+# . ~/.bashrc
+
+(스크립트에서 참조하는 function.sh)
+
+■ function.sh
+
+LOG=check.log
+
+RESULT=result.log
+
+> $LOG
+
+> $RESULT
+
+
+BAR() {
+
+echo "========================================================================" >> $RESULT
+
+}
+
+NOTICE() {
+
+echo '[ OK ] : 정상'
+
+echo '[WARN] : 비정상'
+
+echo '[INFO] : Information 파일을 보고, 고객과 상의'
+
+}
+
+OK() {
+
+echo -e '\033[32m'"[ 양호 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+WARN() {
+
+echo -e '\033[31m'"[ 취약 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+INFO() {
+
+echo -e '\033[35m'"[ 정보 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+CODE(){
+
+echo -e '\033[36m'$*'\033[0m'
+
+} >> $RESULT
+
+(취약점 진단 스크립트 제작)
+■ U-01.sh (CentOS 7.x)
+
+#!/bin/bash
+
+. function.sh
+
+BAR
+
+CODE [U-01] root 계정 원격 접속 제한
+cat << EOF >> $RESULT
+[양호]: 원격 서비스를 사용하지 않거나 사용시 직접 접속을 차단한 경우
+[취약]: root 직접 접속을 허용하고 원격 서비스를 사용하는 경우
+EOF
+BAR
+
+TELNET_SERVICE=telnet.socket
+SECURETTY=/etc/securetty
+STATUS1=$(systemctl is-active $TELNET_SERVICE)
+
+if [ $STATUS1 = 'active' ] ; then
+	WARN 'Service is activated. You must Turn off the Service!'
+	if [ -f $SECURETTY ] ; then
+		INFO '/etc/securetty 파일이 존재합니다!'
+		grep -q 'pts/' $SECURETYY # -q no output. only 0 or 1
+		if [ $? -eq 0 ] ; then
+			WARN '/etc/securetty 파일안에 pts/# 존재합니다'
+		else
+			OK '/etc/securetty 파일안에 pts/# 존재하지 않습니다'
+		fi
+	else
+		WARN '/etc/securetty 파일이 존재하지 않습니다'
+	fi
+else
+	OK Remote Service is deactivated.
+fi
+
+cat $RESULT
+
+
+# systemctl list-unit-files | grep telnet
+
+# systemctl is-active telnet.socket
+
+# systemctl is-enabled telnet.socket
+
+
+(/etc/login.defs, chage CMD, /etc/security/pwquality.conf)
+
+# vi /etc/login.defs
+
+PASS_MAX_DAYS 90
+
+# chage -M 90 -W 7 user01
+
+# authconfig --passminlen 12 \
+
+--enablereqlower -—enablerequpper —enablereqdigit —enablereqother \
+
+--update (12 –4 = 8글자 이상.)
+
+(ㄴ) 암호를 사용자가 변경할수 없도록 설정(# chmod u-s /usr/bin/passwd)
+
+# ls -l /usr/bin/passwd
+
+-rwsr-xr-x 1 root root 23K Aug 11 2010 /usr/bin/passwd* (4755)
+
+# chmod u-s /usr/bin/passwd
+
+# ls -l /usr/bin/passwd
+
+# telnet localhost
+
+user01 사용자로 로그인
+
+$ passwd
+
+-> 자신의 암호를 변경할 수 있는가?
+
+$ exit
+
+# passwd user01
+
+-> 관리자가 user01 사용자의 암호 변경이 가능한가?
+
+# chmod 4755 /usr/bin/passwd
+
+# ls -l /usr/bin/passwd
+
+■ fuction.sh
+
+LOG=check.log
+
+RESULT=result.log
+
+> $LOG
+
+> $RESULT
+
+BAR() {
+
+echo "========================================================================" >> $RESULT
+
+}
+
+NOTICE() {
+
+echo '[ OK ] : 정상'
+
+echo '[WARN] : 비정상'
+
+echo '[INFO] : Information 파일을 보고, 고객과 상의'
+
+}
+
+OK() {
+
+echo -e '\033[32m'"[ 양호 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+WARN() {
+
+echo -e '\033[31m'"[ 취약 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+INFO() { 
+
+echo -e '\033[35m'"[ 정보 ] : $*"'\033[0m'
+
+} >> $RESULT
+
+CODE(){
+
+echo -e '\033[36m'$*'\033[0m' 
+
+} >> $RESULT
+
+SCRIPTNAME() {
+
+basename $0 | awk -F. '{print $1}' 
+
+}
+
+FindPatternReturnValue() {
+
+# $1 : File name
+
+# $2 : Find Pattern
+
+if egrep -v '^#|^$' $1 | grep -q $2 ; then
+
+ReturnValue=$(egrep -v '^#|^$' $1 | grep $2 | awk -F= '{print $2}')
+
+else
+
+ReturnValue=None
+
+fi
+
+echo $ReturnValue
+
+}
+
+IsFindPattern() {
+
+if egrep -v '^#|^$' $1 | grep -q $2 ; then 
+ReturnValue=$?
+
+else
+
+ReturnValue=$?
+
+fi
+
+echo $ReturnValue
+
+}
+
+
+[root@linux200 ~/scripts]# echo /etc/sysconfig/network-scripts/ifcfg-ens33
+
+/etc/sysconfig/network-scripts/ifcfg-ens33
+
+[root@linux200 ~/scripts]# basename /etc/sysconfig/network-scripts/ifcfg-ens33
+
+ifcfg-ens33
+
+[root@linux200 ~/scripts]# 
+
+[root@linux200 ~/scripts]# basename /etc/sysconfig/network-scripts/ifcfg-ens33 | awk -F- '{print $1}'
+
+ifcfg
+
+
+■ U-02.sh
+
+#!/bin/bash
+
+. function.sh
+
+TMP1=`SCRIPTNAME`.log
+
+> $TMP1
+
+BAR
+
+CODE [U-02] 패스워드 복잡성 검사
+
+cat << EOF >> $RESULT
+
+[양호]: 영문 숫자 특수문자가 혼합된 8 글자 이상의 패스워드가 설정된 경우.
+
+[취약]: 영문 숫자 특수문자 혼합되지 않은 8 글자 미만의 패스워드가 설정된 경우.
+
+EOF
+
+BAR
+
+INFO $TMP1 파일을 점검한다.
+
+FILE1=/etc/pam.d/system-auth
+
+PAM_MODULE=pam_cracklib.so
+
+echo "다음은 패스워드 정책입니다." >> $TMP1
+
+cat << EOF >> $TMP1
+
+=========================================================================
+
+try_first_pass : 사용자 암호 입력전 인증 모듈(NIS,NIS+,LDAP)에서 사용된 암호를 먼저 사용
+
+retry : 패스워드 입력 실패 시 재시도 회수 지정
+
+minlen : 크레디트를 더한 패스워드 최소 길이 지정
+
+dcredit : 숫자에 주어지는 크레디트 값 지정
+
+lcredit : 영어 소문자에 주어지는 크레디트 값 지정
+
+ocredit : 숫자, 영어 대/소문자를 제외한 기타 문자 지정
+
+minclass : 문자, 숫자, 특수문자 중 다른 클래스 사용 개수 지정
+
+=========================================================================
+
+EOF
+
+LINE1=`cat $FILE1 | egrep -v '(^$|^#)' | grep $PAM_MODULE`
+
+LINE2=`echo $LINE1 | cut -d ' ' -f 4-`
+
+for VAR in `echo $LINE2`
+
+do
+
+CHECK1=`echo $VAR | awk -F= '{print $1}'`
+
+CHECK2=`echo $VAR | awk -F= '{print $2}'`
+
+case $CHECK1 in
+
+try_first_pass) echo "try_first_passwd" >> $TMP1 ;;
+
+retry) echo "retry : $CHECK2" >> $TMP1 ;;
+
+minlen) echo "minlen : $CHECK2" >> $TMP1 ;;
+
+ucredit) echo "ucredit : $CHECK2" >> $TMP1 ;;
+
+lcredit) echo "lcredit : $CHECK2" >> $TMP1 ;;
+
+dcredit) echo "dcredit : $CHECK2" >> $TMP1 ;;
+
+ocredit) echo "ocredit : $CHECK2" >> $TMP1 ;;
+
+minclass)echo "minclass: $CHECK2" >> $TMP1 ;;
+
+*) echo 'Unkown keyword => $CHECK1 : $CHECK2' >> $TMP1;;
+
+esac
+
+done
+
+cat $RESULT
+
+echo ; echo
+
+
+[계정 잠금 임계값 설정]
+■ (CentOS 5.x) U-03.sh
+
+#!/bin/bash
+
+. function.sh
+
+BAR
+
+CODE [U-03] 계정 잠금 임계값 설정
+
+cat << EOF >> $RESULT
+
+[양호]: 계정 잠금 임계값이 5 이하의 값으로 설정되어 있는 경우
+
+[취약]: 취약: 계정 잠금 임계값이 설정되어 있지 않거나, 5 이하의 값으로 설정되지 않은 경우
+
+EOF
+
+BAR
+
+FILE1=/etc/pam.d/system-auth
+
+PAM_MODULE=pam_tally.so
+
+LINE1=`cat $FILE1 | egrep -v '(^#|^$)' | grep '^auth' | grep $PAM_MODULE`
+
+if [ $? -ne 0 ] ; then
+
+WARN 계정 임계값이 설정되어 있지 않습니다.
+
+else
+
+OK 계정 임계값이 설정되어 있습니다.
+
+LINE2=`echo $LINE1 | cut -d ' ' -f 4-`
+
+for VAR in `echo $LINE2`
+
+do
+
+CHECK1=`echo $VAR | awk -F= '{print $1}'`
+
+CHECK2=`echo $VAR | awk -F= '{print $2}'`
+
+case $CHECK1 in
+
+deny) if [ $CHECK2 -lt 5 ] ; then
+
+OK 계정임계값이 5이하로 설정되어 있습니다.
+
+else
+
+WARN 계정임계값이 5초과하여 설정되어 있습니다.
+
+fi ;;
+
+*) ;;
+
+esac
+
+done
+
+fi
+
+cat $RESULT
+
+echo; echo
+
+
+■ (CentOS 7.X) U-03.sh
+
+PAM Module
+
+* pam_faillock.so deny=5 unlock_time=1800 (7버전부터는 여기)
+
+# cd /lib64/security 
+
+# ls *tally*
+
+# ls *faillock*
+
+PAM File
+
+# cd /etc/pam.d 
+# find . -type f –exec grep –l pam_tally {} \;
+
+# find . -type f –exec grep –l pam_tally2 {} \;
+
+# find . -type f –exec grep –l pam_failock {} \;
+
+* 콘솔로 로그인, su/sudo 전환, passwd CMD
+
+=> /etc/pam.d/system-auth (system-auth-ac로 링크 걸려있다. 이게 원본이니
+
+복사해 사용할땐 이걸 카피한 뒤 수정해 쓰자.)
+
+* X-windows(GNOME, KDE) 로그인, ssh/vsftpd/smtp/pop3/imap 원격 로그인
+
+=> /etc/pam.d/password-auth(패스워드 인증)
+
+파일이 들어있는지 점검하고
+
+양쪽에 모두 등록해야 한다.
+
+PAM File 설정 방법
+
+
+* /etc/pam.d/system-auth
+
+#%PAM-1.0
+
+# This file is auto-generated.
+
+# User changes will be destroyed the next time authconfig is run.
+
+auth required pam_env.so
+
+auth required pam_env.so
+
+auth required pam_faildelay.so delay=2000000 -> 이 줄 아래에 정의하면 된다.
+
+auth required pam_tally2.so deny=5 unlock_time=1800
+
+auth sufficient pam_unix.so nullok try_first_pass
+
+auth requisite pam_succeed_if.so uid >= 1000 quiet_success
+
+auth required pam_deny.so
+
+account required pam_unix.so
+
+account required pam_tally2.so
+
+account sufficient pam_localuser.so
+
+account sufficient pam_succeed_if.so uid < 1000 quiet
+
+account required pam_permit.so
+
+..... (중략) ....
+
+* /etc/pam.d/password-auth
+
+%PAM-1.0
+
+# This file is auto-generated.
+
+# User changes will be destroyed the next time authconfig is run.
+
+auth required pam_env.so
+
+auth required pam_tally2.so deny=5 unlock_time=1800
+
+auth sufficient pam_unix.so nullok try_first_pass
+
+auth requisite pam_succeed_if.so uid >= 1000 quiet_success
+
+auth required pam_deny.so
+
+account required pam_unix.so
+
+account required pam_tally2.so
+
+account sufficient pam_localuser.so
+
+account sufficient pam_succeed_if.so uid < 1000 quiet
+
+account required pam_permit.so
+
+..... (중략) ....
+
+* etc/pam.d/system-auth | /etc/pam.d/password-auth
+
+#%PAM-1.0
+
+# This file is auto-generated.
+
+# User changes will be destroyed the next time authconfig is run.
+
+auth required pam_faillock.so preauth silent audit deny=5 unlock_time=1800 (추가)
+
+auth required pam_env.so
+
+auth [default-die] pam_faillock.so authfail audit deny=5 unlock_time=1800 (추가)
+
+auth required pam_faildelay.so delay=2000000
+
+auth sufficient pam_unix.so nullok try_first_pass
+
+auth requisite pam_succeed_if.so uid >= 1000 quiet_success
+
+auth required pam_deny.so
+
+account required pam_unix.so
+
+account sufficient pam_localuser.so
+
+account sufficient pam_succeed_if.so uid < 1000 quiet
+
+account required pam_permit.so
+
+account required pam_faillock.so (추가)
+
+■ test.sh
+
+#!/bin/bash
+
+egrep -v '^#|^$' test.txt | while read TYPE CONTROL PAM PAM_ARGS
+do
+	# echo $PAM_ARGS
+	set $PAM_ARGS
+	#echo $1 ; shift ;echo $1
+	while [ $# -ge 1 ]
+	do
+		CHOICE=$(echo $* | awk '{print $1}') 
+		if echo $CHOICE | egrep -q 'deny|unlock_time' ; then
+			#case $CHOICE in
+			#"echo $CHOICE | grep deny=") echo 'deny' ;;
+			#'echo $CHOICE | grep unlock_time') echo "Unlock" ;;
+			#*) echo "NONE" ;;
+			#esac
+			PARAMETER=$(echo $CHOICE | awk -F= '{print $1}')
+			VALUE=$(echo $CHOICE | awk -F= '{print $2}')  # 값만 뽑아낸다
+			# echo "$PARAMETER : $VALUE"	
+			case $PARAMETER in
+				'deny') echo $VALUE ;;
+				'unlock_time') echo $VALUE ;;
+				*) continue ;;
+			esac
+		fi
+		shift
+	done
+done
+
+
+3. 이걸 함수로 만들어 function.sh 파일에 추가
+
+LOG=check.log
+RESULT=result.log
+> $LOG
+> $RESULT
+
+....중략......
+
+PAM_FindPatternReturnValue() {
+PAM_FILE=$1
+PAM_MODULE=$2
+PAM_FindPattern=$3
+LINE=$(egrep -v '^#|^$' $PAM_FILE | grep $PAM_MODULE)
+if [ -z "$LINE" ] ; then #내용이 없으면 (zero면) None을 출력
+	ReturnValue=None
+else
+	PARAMS=$(echo $LINE | cut -d ' ' -f4-)
+	# echo $PARAMS
+	set $PARAMS
+	while [ $# -ge 1 ]
+	do
+		CHOICE1=$(echo $* | awk '{print $1}' | awk -F= '{print $1}')
+		CHOICE2=$(echo $* | awk '{print $1}' | awk -F= '{print $2}')
+		# echo "$CHOICE1 : $CHOICE2"
+		case $CHOICE1 in
+			$PAM_FindPattern) ReturnValue=$CHOICE2 ;;
+			*) : ;;		
+		esac
+		shift
+	done
+fi
+echo $ReturnValue
+}
+
+: << EOF
+PAM_FindPatternReturnValue() {
+PAM_FILE=$1
+egrep -v '^#|^$' $PAM_FILE \
+	| egrep 'pam_faillock.so | pam_tally2.so' \
+	| while read TYPE CONTROL PAM PAM_ARGS
+do
+	set $PAM_ARGS
+	while [ $# -ge 1 ]
+	do
+		CHOICE=$(echo $* | awk '{print $1}') 
+		if echo $CHOICE | egrep -q 'deny|unlock_time' ; then
+			PARAMETER=$(echo $CHOICE | awk -F= '{print $1}')
+			VALUE=$(echo $CHOICE | awk -F= '{print $2}')  # 값만 뽑아낸다
+			case $PARAMETER in
+				'deny') echo $VALUE ;;
+				'unlock_time') echo $VALUE ;;
+				*) continue ;;
+			esac
+		fi
+		shift
+	done
+done
+}
+EOF
+
+■ U-03.sh
+
+#!/bin/bash
+
+. function.sh
+
+BAR
+
+CODE [U-03] 계정 잠금 임계값 설정
+
+cat << EOF >> $RESULT
+
+[양호]: 계정 잠금 임계값이 5이하의 값으로 설정되어 있는 경우
+
+[취약]: 계정 잠금 임계값이 설정되어 있지 않거나, 5이하의 값으로 설정되지 않은 경우
+
+EOF
+
+BAR
+
+FILE1=/root/scripts/system-auth
+
+PAM_MODULE=pam_tally2.so
+
+LINE1=$(echo $(cat system-auth | egrep -v '(^$|^#)' | grep '^auth' | grep pam_tally2.so) | cut -d' ' -f4-)
+
+if [ -z $LINE1 ]; then
+
+WARN 임계값이 설정되어 있지 않습니다.
+
+else
+
+for i in `echo $LINE1`
+
+do
+
+KEY1=$(echo $i | awk -F= '{print $1}')
+
+VALUE1=$(echo $i | awk -F= '{print $2}')
+
+case $KEY1 in
+
+deny) if [ $VALUE1 -le 5 ] ; then
+
+OK 임계값이 5이하로 설정 되어 있습니다.
+
+else
+
+WARN 임계값이 6이상으로 설정되어 있습니다.
+
+fi 
+
+;;
+
+*) : ;;
+
+esac
+
+done
+
+fi
+
+cat $RESULT
+
+echo ; echo

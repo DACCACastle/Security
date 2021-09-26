@@ -45,16 +45,6 @@ if [ $ApacheAuth = AuthConfig ]
 	then
 		echo "    ==> [안전] 디렉터리별 사용자 인증이 설정되어 있습니다" >> $ApacheLog 2>&1
 		echo >> $ApacheLog 2>&1
-		echo "    사용자 인증이 필요한 디렉터리에 .htaccess 파일 생성되어 있습니다." >> $ApacheLog 2>&1
-		echo "    ***************************************************************" >> $ApacheLog 2>&1
-		echo "    *     지시자     *                     설명                  **" >> $ApacheLog 2>&1
-		echo "    ***************************************************************" >> $ApacheLog 2>&1
-		echo "    * AuthType       *  인증 형태 (Baisc / Digest)                *" >> $ApacheLog 2>&1
-		echo "    * AuthName       *  인증 영역 (웹 브라우저의 인증창에 표시)   *" >> $ApacheLog 2>&1
-		echo "    * AuthUserFile   *  사용자 패스워드 파일의 위치               *" >> $ApacheLog 2>&1
-		echo "    * AuthGroupFile  *  그룹 파일의 위치 (옵션)                   *" >> $ApacheLog 2>&1
-		echo "    * Require        *  접근을 허용할 사용자 / 그룹 정의          *" >> $ApacheLog 2>&1
-		echo "    ***************************************************************" >> $ApacheLog 2>&1
 	else
 		echo "    ==> [취약]  디렉터리별 사용자 인증이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
 fi

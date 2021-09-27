@@ -38,9 +38,9 @@ CF=hostname"_scanresult"date +%F__%T.txt
 echo "03. 계정 잠금 (임계값) 설정"
 echo "03. 계정 잠금 (임계값) 설정" >> $CF 2>&1
 
-TI=grep deny= /etc/pam.d/password-auth | awk '{print $5}' | awk -F = '{print $2}'
+TI=`grep deny= /etc/pam.d/password-auth | awk '{print $5}' | awk -F = '{print $2}'`
 
-if [ "grep deny= /etc/pam.d/password-auth" ]
+if [ "`grep deny= /etc/pam.d/password-auth`" ]
     then
         echo "    ==> [안전] "$TI"번 로그인 실패시 계정이 잠김니다" >> $CF 2>&1
     else

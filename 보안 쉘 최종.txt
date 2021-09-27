@@ -586,39 +586,42 @@ else
         echo "DNS 서비스 미사용 중(양호)"
 fi
 
-	
 ApacheLog=`hostname`"_Apache_Check_"`date +%F__%T`.txt
-
+ApacheCheck=`cat /etc/httpd/conf/httpd.conf 2> /dev/null`
+ApacheOption=`cat /etc/httpd/conf/httpd.conf 2> /dev/null | grep Options | sed -n '1p'`
 echo "U-35 Apache 디렉토리 리스팅 제거"
 echo "U-35. Apache 디렉토리 리스팅 제거" >> $ApacheLog 2>&1
-ApacheOption=`cat /etc/httpd/conf/httpd.conf | grep Options | sed -n '1p'`
-
-if [[ $ApacheOption == *Indexes* ]]
-	then
-		echo "     [취약] 디렉토리 리스팅이 설정되어 있습니다" >> $ApacheLog 2>&1
-	else
-		echo "     [안전] 디렉토리 리스팅이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+if [ -n "$ApacheCheck" ]; then
+    if [[ $ApacheOption == *Indexes* ]]
+	    then
+	    	echo "     [취약] 디렉토리 리스팅이 설정되어 있습니다" >> $ApacheLog 2>&1
+	    else
+	    	echo "     [안전] 디렉토리 리스팅이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+    fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
 fi
-
 echo
 echo >> $ApacheLog 2>&1
 
 
 echo "U-36 Apache 웹 프로세스 권한 제한"
 echo "U-36 Apache 웹 프로세스 권한 제한" >> $ApacheLog 2>&1
-ApacheUser=`cat /etc/httpd/conf/httpd.conf | grep User | sed -n '2p' | awk '{print $2}'`
-ApacheGroup=`cat /etc/httpd/conf/httpd.conf | grep Group | sed -n '2p' | awk '{print $2}'`
-
-if [ "$ApacheUser" != root ]; then
-		echo "      [안전] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
-	else
-		echo "      [취약] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
-fi
-
-if [ "$ApacheGroup" != root ]; then
-		echo "      [안전] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
-	else
-		echo "      [취약] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
+ApacheUser=`cat /etc/httpd/conf/httpd.conf 2> /dev/null | grep User | sed -n '2p' | awk '{print $2}'`
+ApacheGroup=`cat /etc/httpd/conf/httpd.conf 2> /dev/null | grep Group | sed -n '2p' | awk '{print $2}'`
+if [ -n "$ApacheCheck" ]; then  
+        if [ "$ApacheUser" != root ]; then
+	    	    echo "      [안전] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
+	        else
+	    	    echo "      [취약] 현재 설정된 웹 프로세스 User 권한  :" $ApacheUser >> $ApacheLog 2>&1
+        fi
+        if [ "$ApacheGroup" != root ]; then
+		        echo "      [안전] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
+	        else
+		        echo "      [취약] 현재 설정된 웹 프로세스 Group 권한 :" $ApacheGroup >> $ApacheLog 2>&1
+        fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
 fi
 
 echo
@@ -627,78 +630,90 @@ echo >> $ApacheLog 2>&1
 echo "U-37 Apache 상위 디렉터리 접근 금지"
 echo "U-37 Apache 상위 디렉터리 접근 금지" >> $ApacheLog 2>&1
 
-ApacheAuth=`cat /etc/httpd/conf/httpd.conf  | grep AllowOverride | sed -n '1p' | awk '{print $2}'`
-
-if [ $ApacheAuth = AuthConfig ]
-	then
-		echo "    ==> [안전] 디렉터리별 사용자 인증이 설정되어 있습니다" >> $ApacheLog 2>&1
-		echo >> $ApacheLog 2>&1
-	else
-		echo "    ==> [취약]  디렉터리별 사용자 인증이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
-fi
+ApacheAuth=`cat /etc/httpd/conf/httpd.conf 2> /dev/null  | grep AllowOverride | sed -n '1p' | awk '{print $2}'`
+if [ -n "$ApacheCheck" ]; then  
+    if [ $ApacheAuth = AuthConfig ]
+	    then
+		    echo "    ==> [안전] 디렉터리별 사용자 인증이 설정되어 있습니다" >> $ApacheLog 2>&1
+		    echo >> $ApacheLog 2>&1
+	    else
+		    echo "    ==> [취약]  디렉터리별 사용자 인증이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+    fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
+fi    
 
 echo
 echo >> $ApacheLog 2>&1
 
 echo "U-38 Apache 불필요한 파일 제거"
 echo "U-38 Apache 불필요한 파일 제거" >> $ApacheLog 2>&1
-ApacheCgi=`cat /etc/httpd/conf/httpd.conf | grep -v "^ *#" | grep "<Directory" | grep "cgi-bin" | wc -l`
-echo >> $ApacheLog 2>&1
-echo "	    [ Apache Home Directory 상에 설정 되어 있는 cgi-bin 삭제 할 것 ]" >> $ApacheLog 2>&1
-if [ $ApacheCgi -eq 0 ]; then
-		echo "      [취약] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있지 않습니다" >> $ApacheLog 2>&1
-	else
-		echo "      [양호] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있습니다"  >> $ApacheLog 2>&1
-fi
+ApacheCgi=`cat /etc/httpd/conf/httpd.conf 2> /dev/null | grep -v "^ *#" | grep "<Directory" | grep "cgi-bin" | wc -l`
+if [ -n "$ApacheCheck" ]; then  
+    if [ $ApacheCgi -eq 0 ]; then
+	    	echo "      [취약] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있지 않습니다" >> $ApacheLog 2>&1
+	    else
+	    	echo "      [양호] 웹 서버를 정기적으로 검사하여 불필요한 파일 설정 제거 되어 있습니다"  >> $ApacheLog 2>&1
+    fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
+fi    
 echo
 echo >> $ApacheLog 2>&1
 
 
 echo "U-39 Apache 링크 사용 금지"
 echo "U-39 Apache 링크 사용 금지" >> $ApacheLog 2>&1
-
-if [[ $ApacheOption == *FollowSymLinks* ]]; then
-		echo "      [취약] Apache 상에서 심볼릭 링크 사용이 설정되어 있습니다" >> $ApacheLog 2>&1
-	else
-		echo "      [안전] Apache 상에서 심볼릭 링크 사용이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+if [ -n "$ApacheCheck" ]; then  
+    if [[ $ApacheOption == *FollowSymLinks* ]]; then
+		    echo "      [취약] Apache 상에서 심볼릭 링크 사용이 설정되어 있습니다" >> $ApacheLog 2>&1
+	    else
+		    echo "      [안전] Apache 상에서 심볼릭 링크 사용이 설정되어 있지 않습니다" >> $ApacheLog 2>&1
+    fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
 fi
-
-echo
+echo 
 echo >> $ApacheLog 2>&1
 
 echo "U-40 Apache 파일 업로드 및 다운로드 제한"
 echo "U-40 Apache 파일 업로드 및 다운로드 제한" >> $ApacheLog 2>&1
 
 UpSpeed=`cat /etc/opt/remi/php74/php.ini 2>/dev/null |  grep post_max_size | awk '{print $3}'`
-DownSpeed=`cat /etc/httpd/conf/httpd.conf 2>/dev/null | grep LimitRequestBody | awk '{print $2}'`
+DownSpeed=`cat /etc/httpd/conf/httpd.conf 2> /dev/null 2>/dev/null | grep LimitRequestBody | awk '{print $2}'`
+if [ -n "$ApacheCheck" ]; then  
+        if [ $UpSpeed ]
+	        then
+	        	echo "    ==> [안전] 업로드 가능한 파일의 최대 용량   : "$UpSpeed >> $ApacheLog 2>&1
+	        else
+	        	echo "    ==> [취약] 업로드 가능한 파일의 최대 용량   : 제한없음" >> $ApacheLog 2>&1
+        fi
 
-if [ $UpSpeed ]
-	then
-		echo "    ==> [안전] 업로드 가능한 파일의 최대 용량   : "$UpSpeed >> $ApacheLog 2>&1
-	else
-		echo "    ==> [취약] 업로드 가능한 파일의 최대 용량   : 제한없음" >> $ApacheLog 2>&1
-fi
-
-if [ $DownSpeed ]
-	then
-		echo "    ==> [안전] 다운로드 가능한 파일의 최대 용량 : "$DownSpeed >> $ApacheLog 2>&1
-	else
-		echo "    ==> [취약] 다운로드 가능한 파일의 최대 용량 : 제한없음" >> $ApacheLog 2>&1
-fi
-
+        if [ $DownSpeed ]
+	        then
+	        	echo "    ==> [안전] 다운로드 가능한 파일의 최대 용량 : "$DownSpeed >> $ApacheLog 2>&1
+	        else
+	        	echo "    ==> [취약] 다운로드 가능한 파일의 최대 용량 : 제한없음" >> $ApacheLog 2>&1
+        fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
+fi  
 echo
 echo >> $ApacheLog 2>&1
 
 
 echo "U-41 Apache 웹 서비스 영역 분리"
 echo "U-41 Apache 웹 서비스 영역 분리" >> $ApacheLog 2>&1
-APDocRoot=`cat /etc/httpd/conf/httpd.conf | grep DocumentRoot | sed -n '2p' | awk '{print $2}'`
+APDocRoot=`cat /etc/httpd/conf/httpd.conf 2> /dev/null | grep DocumentRoot | sed -n '2p' | awk '{print $2}'`
 APhtml="/var/it/"
-
-if [ $APDocRoot=$APhtml ]; then
-		echo "      [취약] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
-	else
-		echo "      [안전] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
+if [ -n "$ApacheCheck" ]; then 
+    if [ $APDocRoot=$APhtml ]; then
+	    	echo "      [취약] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
+	    else
+	    	echo "      [안전] DocumentRoot에 설정된 디렉터리 : $APDocRoot" >> $ApacheLog 2>&1
+    fi
+    else 
+        echo "[오류] Apache가 설치 되어 있지 않습니다." >> $ApacheLog 2>&1
 fi
 echo
 echo >> $ApacheLog 2>&1
@@ -723,4 +738,3 @@ echo >> $ApacheLog 2>&1
 
 echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------" 
 echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------" >> $ApacheLog 2>&1
-

@@ -1,0 +1,717 @@
+#!/bin/bash
+#echo "U-01 root 계정 원격 접속 제한"
+telnet=$(cat /etc/securetty | grep *pts/x)
+telnet1=$(cat /etc/pam.d/login | grep "auth required /lib/security/pam_securetty.so")
+ssh=$(cat /etc/ssh/sshd_config | grep PermitRootLogin | grep no)
+
+                        U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정--[취약]
+if [ -z "$telnet" ]; then
+        if [ -n "$telnet1" ]; then
+                if [ -z "$ssh" ]; then
+                        echo "U-01 root 계정 원격 접속 제한--------------------------------[양호]"
+                else
+                        echo "U-01 root 계정 원격 접속 제한--------------------------------[취약]"
+                fi
+        else
+                        echo "U-01 root 계정 원격 접속 제한--------------------------------[취약]"
+        fi
+else
+                        echo "U-01 root 계정 원격 접속 제한--------------------------------[취약]"
+fi
+
+echo "U-02 패스워드 복잡성 설정"
+
+echo "    ==> 알고리즘                :   authconfig --test | grep hashing | awk '{print $5}'"
+echo "    ==> 최대 사용 기간          :   cat /etc/login.defs | grep PASS_MAX_DAYS | awk '{print $2}' | sed '1d'일"
+echo "    ==> 최소 사용 시간          :   cat /etc/login.defs | grep PASS_MIN_DAYS | awk '{print $2}' | sed '1d'일"
+echo "    ==> 최소 길이               :   cat /etc/login.defs | grep PASS_MIN_LEN | awk '{print $2}' | sed '1d'글자"
+echo "    ==> 기간 만료 경고 기간(일) :   cat /etc/login.defs | grep PASS_WARN_AGE | awk '{print $2}' | sed '1d'일"
+
+
+CF=`hostname`"_scan_result_"`date +%F__%T`.txt
+#echo "03. 계정 잠금 (임계값) 설정"
+
+TI=`grep deny= /etc/pam.d/password-auth | awk '{print $5}' | awk -F = '{print $2}'`
+
+if [ "`grep deny= /etc/pam.d/password-auth`" ]
+   then
+        echo "U-03 계정 잠금 임계값 설정-----------------------------------[양호]"
+   else
+        echo "U-03 계정 잠금 임계값 설정-----------------------------------[취약]"
+fi
+
+
+#echo "U-04 패스워드 파일 보호"
+u04=`ls /etc/shadow 2> /dev/null`
+
+if [ -n "$u04" ]; then
+        echo "U-04 패스워드 파일 보호--------------------------------------[양호]"
+else
+        echo "U-04 패스워드 파일 보호--------------------------------------[취약]"
+fi
+
+#echo "U-05 root 홈 디렉터리 권한 및 패스 설정"
+
+A=`echo $PATH`
+if [[ $A =~ "." ]]; then
+        echo "U-05 root 홈 디렉터리 권한 및 패스 설정----------------------[취약]"
+        echo "환경변수 파일들을 확인하여 .(현재 디렉토리)을 환경변수의 마지막으로 이동하세요!"
+
+else
+        echo "U-05 root 홈 디렉터리 권한 및 패스 설정----------------------[양호]"
+fi
+
+
+
+#echo "U-06 파일 및 디렉터리 소유자 설정"
+
+A=`find / -nouser -print 2>/dev/null`
+B=`find / -nogroup -print 2>/dev/null`
+if [[ $A =~ "/" ]]; then
+        echo "U-06 파일 및 디렉터리 소유자 설정----------------------------[취약]"
+        echo "`find / -nouser -print 2>/dev/null`"
+        echo "출력되는 파일 및 디렉토리를 삭제 혹은 소유자를 변경하세요."
+elif [[ $B =~ "/" ]]; then
+        echo "U-06 파일 및 디렉터리 소유자 설정----------------------------[취약]"
+        echo "`find / -nogroup -print 2>/dev/null`"
+        echo "출력되는 파일 및 디렉토리를 삭제 혹은 그룹을 변경하세요."
+
+else
+        echo "U-06 파일 및 디렉터리 소유자 설정----------------------------[양호]"
+fi
+
+
+
+#echo "U-07 /etc/passwd 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/passwd | awk '{print $1}'`
+B=`ls -l /etc/passwd | awk '{print $3}'`
+if [[ $A != "-rw-r--r--" ]] && [[ $A != "-rw-r--r--." ]]; then
+        echo "U-07 /etc/passwd 파일 소유자 및 권한 설정--------------------[취약]"
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-07 /etc/passwd 파일 소유자 및 권한 설정--------------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-07 /etc/passwd 파일 소유자 및 권한 설정--------------------[양호]"
+fi
+
+
+#echo "U-08 /etc/shadow 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/shadow | awk '{print $1}'`
+B=`ls -l /etc/shadow | awk '{print $3}'`
+if [[ $A != "-r--------" ]] && [[ $A != "----------" ]]; then
+        echo "U-08 /etc/shadow 파일 소유자 및 권한 설정--------------------[취약]"
+        echo "권한이 400 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-08 /etc/shadow 파일 소유자 및 권한 설정--------------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-08 /etc/shadow 파일 소유자 및 권한 설정--------------------[양호]"
+fi
+
+
+
+#echo "U-09 /etc/hosts 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/hosts | awk '{print $1}'`
+B=`ls -l /etc/hosts | awk '{print $3}'`
+if [[ $A != "-rw-------." ]] && [[ $A != "-rw-------" ]]; then
+        echo "U-09 /etc/hosts 파일 소유자 및 권한 설정---------------------[취약]"
+        echo "권한이 600 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-09 /etc/hosts 파일 소유자 및 권한 설정---------------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-09 /etc/hosts 파일 소유자 및 권한 설정---------------------[양호]"
+fi
+
+
+
+#echo "U-10 /etc/xinetd.conf 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/xinetd.conf | awk '{print $1}'`
+B=`ls -l /etc/xinetd.conf | awk '{print $3}'`
+if [[ $A != "-rw-------." ]] && [[ $A != "-rw-------" ]]; then
+        echo "U-10 /etc/xinetd.conf 파일 소유자 및 권한 설정---------------[취약]"
+        echo "권한이 600 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-10 /etc/xinetd.conf 파일 소유자 및 권한 설정---------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-10 /etc/xinetd.conf 파일 소유자 및 권한 설정---------------[양호]"
+fi
+
+
+
+#echo "U-11 /etc/syslog.conf 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/syslog.conf | awk '{print $1}'`
+B=`ls -l /etc/syslog.conf | awk '{print $3}'`
+if [[ $A != "-rw-r--r--." ]] && [[ $A != "-rw-r--r--" ]]; then
+        echo "U-11 /etc/syslog.conf 파일 소유자 및 권한 설정---------------[취약]"
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-11 /etc/syslog.conf 파일 소유자 및 권한 설정---------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-11 /etc/syslog.conf 파일 소유자 및 권한 설정---------------[양호]"
+fi
+
+
+
+#echo "U-12 /etc/services 파일 소유자 및 권한 설정"
+
+A=`ls -l /etc/services | awk '{print $1}'`
+B=`ls -l /etc/services | awk '{print $3}'`
+if [[ $A != "-rw-r--r--." ]] && [[ $A != "-rw-r--r--" ]]; then
+        echo "U-12 /etc/services 파일 소유자 및 권한 설정------------------[취약]"
+        echo "권한이 644 이하인지 확인 후 변경하세요!"
+elif [[ $B != "root" ]]; then
+        echo "U-12 /etc/services 파일 소유자 및 권한 설정------------------[취약]"
+        echo "소유자를 root로 변경하세요!"
+else
+        echo "U-12 /etc/services 파일 소유자 및 권한 설정------------------[양호]"
+fi
+
+
+
+#echo "U-13 SUID, SGID, Sticky bit 설정 파일 점검"
+
+A=`find / -xdev -user root -type f \( -perm -4000 -o -perm -2000 \) -exec ls -al {} \; | awk '{print $9}' >> check.txt`
+B=`sort check.txt | uniq -d > war.log`
+war=war.log
+
+if [ -s $war ]; then
+        echo "U-13 SUID, SGID, Sticky bit 설정 파일 점검-------------------[취약]"
+        echo "보안에 위험한 파일이 존재합니다! 생성된 war.log 파일을 확인하세요."
+
+else
+        echo "U-13 SUID, SGID, Sticky bit 설정 파일 점검-------------------[양호]"
+fi
+
+clean=`sed -i '15,$d' check.txt`
+#echo "U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정"
+
+A=`ls -la .profile .kshrc .cshrc .bashrc .bash_profile .login .exrc .netrc 2>/dev/null | awk '{print $3}' | uniq | xargs echo | sed 's/ //g'`
+user=`who am i | awk '{print $1}'`
+B=`ls -la .profile .kshrc .cshrc .bashrc .bash_profile .login .exrc .netrc 2>/dev/null | awk '{print $1}' | uniq | xargs echo | sed 's/ //g'`
+
+if [[ $A != "root" ]] && [[ "$A" != $user ]] && [[ $A != "root"$user ]]; then
+        echo "U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정--[취약]"
+        echo "보안 경고! 소유자를 변경하세요."
+elif [[ $B != "-rw-r--r--" ]] && [[ $B != "-rw-r--r--." ]] && [[ $B != "-rw-r--r---rw-r--r--." ]]; then
+        echo "U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정--[취약]"
+        echo "보안 경고! root와 소유자 외에 쓰기 권한이 부여됬는지 확인 후 변경하세요."
+else
+        echo "U-14 사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정--[양호]"
+fi
+
+
+u15=`find / ! \( -path '/proc*' -o -path '/sys/fs*' -o -path '/usr/local*' -prune \) -perm -2 -type f -exec ls -al {} \;`
+
+if [ -z "$u15" ] ; then
+        echo "U-15 world writable 파일 점검--------------------------------[양호]"
+else
+        echo "U-15 world writable 파일 점검--------------------------------[위험]"
+fi
+
+u16=`find /dev -type f -exec ls -l {} \;`
+
+if [ -z "$u16" ]; then
+        echo "U-16 /dev에 존재하지 않는 device 파일 점검-------------------[양호]"
+else
+        echo "U-16 /dev에 존재하지 않는 device 파일 점검-------------------[위험]"
+fi
+
+u17_1=`ls -al /etc/ | grep 'hosts.equiv' | awk '{print $1}'`
+u17_2=`ls -al $HOME/ | grep '.rhosts' | awk '{print $1}'`
+u17_5=0
+
+
+if [ "$u17_1" != "-rw-------." ]; then
+        chown root /etc/hosts.equiv
+        chmod 600 /etc/hosts.equiv
+fi
+if [ "$u17_2" != "-rw-------." ]; then
+        chown root $HOME/.rhosts
+        chmod 600 $HOME/.rhosts
+fi
+
+if  [ "$HOME/.rhosts" != *"+"* ]; then
+        if [ "$HOME/.rhosts" != *"+"* ]; then
+                echo "U-17 $HOME/.rhosts, hosts.equiv 사용 금지--------------------[양호]"
+        else
+                echo "$HOME/.rhosts 설정 변경 필요"
+                u17_5=1
+        fi
+else
+        if [ "$HOME/.rhosts" == *"+"* ]; then
+                echo "$HOME/.rhosts 설정 변경 필요"
+                u17_5=1
+        fi
+        echo "/etc/hosts.equiv 설정 변경 필요"
+        u17_5=1
+fi
+
+if [ "$u17_5" -eq 1 ]; then
+        echo "U-17 $HOME/.rhosts, hosts.equiv 사용 금지--------------------[위험]"
+fi
+
+u19=`ls -al /etc/xinetd.d/ | grep "finger"`
+
+if [ -z "$u19" ]; then
+        echo "U-19 finger 서비스 비활성화----------------------------------[양호]"
+else
+        u19_1=`cat /etc/xinetd.d/finger | grep disable | awk '{print $3}'`
+        if [ "$u19_1" == "yes" ]; then
+                echo "U-19 finger 서비스 비활성화--------------------------[양호]"
+        else
+                echo "U-19 finger 서비스 비활성화--------------------------[위험]"
+        fi
+fi
+
+u20=`cat /etc/passwd | grep "ftp"`
+
+if [ -z "$u20" ]; then
+        echo "U-20 Anonymous FTP 비활성화----------------------------------[양호]"
+else
+
+        echo "U-20 Anonymous FTP 비활성화----------------------------------[양호]"
+        userdel ftp
+        echo "U-20 Anonymous FTP 비활성화----------------------------------[삭제 완료]"
+fi
+
+
+u21=`ls -alL /etc/xinetd.d/ | egrep "rsh|rlogin|rexec" | egrep -v "grep|klogin|kshell|kexec"`
+u21_1=`cat /etc/xinetd.d/rlogin 2> /dev/null | grep disable | awk '{print $3}'`
+u21_2=`cat /etc/xinetd.d/rsh 2> /dev/null | grep disable | awk '{print $3}'`
+u21_3=`cat /etc/xinetd.d/rexec 2> /dev/null | grep disable | awk '{print $3}'`
+u21_4=0
+
+if [ -z "$u21" ]; then
+        echo "U-21 r 계열 서비스 비활성화----------------------------------[양호]"
+else
+        if [ "$u21_1" == "yes" ]; then
+                if [ "$u21_2" == "yes" ]; then
+                        if [ "$u21_3" == "yes" ]; then
+                                echo "U-21 r 계열 서비스 비활성화----------------------------------[양호]"
+                        else
+                                "$u21_4"=1
+                        fi
+                else
+                        "$u21_4"=1
+                fi
+        else
+                "$u21_4"=1
+        fi
+fi
+
+if [ "$u21_4" == "1" ]; then
+        echo "U-21 r 계열 서비스 비활성화----------------------------------[위험]"
+fi
+
+u22_1=`ls -al /etc/ | grep 'cron.allow' | awk '{print $1}'`
+u22_2=`ls -al /etc/ | grep 'cron.deny' | awk '{print $1}'`
+
+if [ "$u22_1" != "-rw-------." ]; then
+        chown root /etc/cron.allow 2> /dev/null
+        chmod 600 /etc/cron.allow 2> /dev/null
+fi
+if [ "$u22_2" != "-rw-------." ]; then
+        chown root /etc/cron.deny 2> /dev/null
+        chmod 600 /etc/cron.deny 2> /dev/null
+fi
+echo "U-22 cron 파일 소유자 및 권한설정----------------------------[양호]"
+
+u23=`ls -alL /etc/xinetd.d/ | egrep "echo|discard|daytime|chargen"`
+u23_1=`cat /etc/xinetd.d/echo 2> /dev/null | grep disable | awk '{print $3}'`
+u23_2=`cat /etc/xinetd.d/discard 2> /dev/null | grep disable | awk '{print $3}'`
+u23_3=`cat /etc/xinetd.d/daytime 2> /dev/null | grep disable | awk '{print $3}'`
+u23_4=`cat /etc/xinetd.d/chargen 2> /dev/null | grep disable | awk '{print $3}'`
+u23_5=0
+if [ -z "$u23" ]; then
+       echo "U-23 Dos 공격에 취약한 서비스 비활성화-----------------------[양호]"
+else
+        if [ "$u23_1" == "yes" ]; then
+                if [ "$u23_2" == "yes" ]; then
+                        if [ "$u23_3" == "yes" ]; then
+                                if [ "$u23_4" == "yes" ]; then
+                                        echo "U-23 Dos 공격에 취약한 서비스 비활성화-----------------------[양호]"
+
+                                else
+                                        "$u23_5"=1
+                                fi
+                        else
+                                "$u23_5"=1
+                        fi
+                else
+                        "$u23_5"=1
+                fi
+        else
+                "$u23_5"=1
+        fi
+fi
+
+if [ "$u23_5" == "1" ]; then
+        echo "U-23 Dos 공격에 취약한 서비스 비활성화-----------------------[위험]"
+fi
+
+u24=`ps -ef | grep nfsd | awk '{print $8}'`
+u24_1=`ps -ef | grep nfsd | awk '{print $2}'`
+u24_2=`kill -9 "$24_1" 2> /dev/null`
+
+if [ "$u24" == "/usr/lib/nfs/nfsd" ]; then
+        echo "U-24 NFS 서비스 비활성화-------------------------------------[위험]"
+        "$u24_2"
+        echo "U-24 NFS 서비스 비활성화-------------------------------------[비활성화 완료]"
+else
+        echo "U-24 NFS 서비스 비활성화-------------------------------------[양호]"
+fi
+
+
+#echo "U-25 NFS 접근 통제"
+No=$(cat /etc/exports | egrep "\*|no_root_squash")
+if [ -n "$No" ]; then
+        echo "U-25 NFS 접근 통제-------------------------------------------[취약]"
+else
+        echo "U-25 NFS 접근 통제-------------------------------------------[양호]"
+fi
+
+#echo "U-26 automounted 제거"
+NoAuto=$(ps -ef | grep automount |  awk '{print $3}' | sed -n -e '1p')
+
+if [ $NoAuto == "1" ]; then
+        echo "U-26 automounted 제거----------------------------------------[취약]"
+else
+        echo "U-26 automounted 제거----------------------------------------[양호]"
+fi
+
+cmsdf=/etc/xinetd.d/rpc.cmsd
+rusersdf=/etc/xinetd.d/rusersd
+rstatdf=/etc/xinetd.d/rstatd
+dbserverdf=/etc/xinetd.d/rstatdrpc.ttdbserverd
+kcmsf=/etc/xinetd.d/kcms_server
+Walldf=/etc/xinetd.d/Walld
+NIDSf=/etc/xinetd.d/rpc.nids
+updatedf=/etc/xinetd.d/rpc.ypupdated
+Cachefsdf=/etc/xinetd.d/cachefsd
+Sadmindf=/etc/xinetd.d/sadmind
+Spraydf=/etc/xinetd.d/sprayd
+pcnfsdf=/etc/xinetd.d/rpc.pcnfsd
+rexdf=/etc/xinetd.d/rexd
+rquotadf=/etc/xinetd.d/rpc.rquotad
+
+arr1=($cmsdf $rusersdf $rstatdf $dbserverdf $kcmsf $Walldf $NIDSf $updatedf $Cachefsdf $Sadmindf $Spraydf $pcnfsdf $rexdf $rquotadf)
+for li in ${arr1[@]}; do
+        if [ -e $li ]; then
+            cmsd=$(cat $cmsdf | grep "disable = no")
+            rusersd=$(cat $rusersdf | grep "disable = no")
+            rstatd=$(cat $rstatdf | grep "disable = no")
+            dbserverd=$(cat $dbserverdf | grep "disable = no")
+            kcms=$(cat $kcmsf | grep "disable = no")
+            Walld=$(cat $Walldf | grep "disable = no")
+            NIDS=$(cat $NIDSf | grep "disable = no")
+            updated=$(cat $updatedf | grep "disable = no")
+            Cachefsd=$(cat $Cachefsdf | grep "disable = no")
+            Sadmind=$(cat $Sadmindf | grep "disable = no")
+            Sprayd=$(cat $Spraydf | grep "disable = no")
+            pcnfsd=$(cat $pcnfsdf | grep "disable = no")
+            rexd=$(cat $rexdf | grep "disable = no")
+            rquotad=$(cat $rquotadf | grep "disable = no")
+            u27=0
+                    if [ -z "$cmsd"]; then
+                        if [ -z "$rusersd"]; then
+                                if [ -z "$rstatd"]; then
+                                        if [ -z "$dbserverd"]; then
+                                                if [ -z "$kcms"]; then
+                                                        if [ -z "$Walld"]; then
+                                                                if [ -z "$NIDS"]; then
+                                                                        if [ -z "$kcms"]; then
+                                                                                if [ -z "$updated"]; then
+                                                                                        if [ -z "$Cachefsd"]; then
+                                                                                                if [ -z "$Sadmind"]; then
+                                                                                                        if [ -z "$Sprayd"]; then
+                                                                                                                if [ -z "$pcnfsd"]; then
+                                                                                                                        if [ -z "$rexd"]; then
+                                                                                                                                if [ -z "$rquotad"]; then
+                                                                                                                                        echo "U-27 RPC 서비스----------------------------------------------[양호]"
+                                                                                                                                else
+                                                                                                                                        u27=1
+                                                                                                                                fi
+                                                                                                                        else
+                                                                                                                                u27=1
+                                                                                                                        fi
+                                                                                                                else
+                                                                                                                        u27=1
+                                                                                                                fi
+                                                                                                        else
+                                                                                                                u27=1
+                                                                                                        fi
+                                                                                                else
+                                                                                                        u27=1
+                                                                                                fi
+                                                                                        else
+                                                                                                u27=1
+                                                                                        fi
+                                                                                else
+                                                                                        u27=1
+                                                                                fi
+                                                                        else
+                                                                                u27=1
+                                                                        fi
+                                                                else
+                                                                        u27=1
+                                                                fi
+                                                        else
+                                                                u27=1
+                                                        fi
+                                                else
+                                                        u27=1
+                                                fi
+                                        else
+                                                u27=1
+                                        fi
+                                else
+                                        u27=1
+                                fi
+                        else
+                                u27=1
+                        fi
+                else
+                        u27=1
+                fi
+        else
+                u27=1
+        fi
+done
+
+if [ "$u27" == "1" ]; then
+        echo "U-27 RPC 서비스----------------------------------------------[취약]"
+fi
+
+#echo "U-29 tftp, talk 서비스 비활성화"
+tftp=/etc/xinetd.d/tftp
+talk=/etc/xinetd.d/talk
+
+arr=($tftp $talk )
+for list in "${arr[@]}"; do
+        if [ -f $arr1 ]; then
+                echo "U-29 tftp, talk 서비스 비활성화------------------------------[취약]"
+                echo "$list 서비스 활성화 중"
+        else
+
+                echo "U-29 tftp, talk 서비스 비활성화------------------------------[양호]"
+                echo "$list 서비스 비활성화"
+        fi
+done
+#echo "U-30 Sendmail 버전 점검"
+UseSend=$(ps -ef | grep sendmail | grep smmsp |  awk '{print $3}')
+if [ "$UseSend" == "1" ]; then
+        echo quit | sleep 1 | telnet localhost 25 > sendmail.log
+        V=`cat sendmail.log | awk '{print $5}' | grep -v "^$" | awk -F/ '{print $1}'`
+        echo "U-30 Sendmail 버전 점검--------------------------------------[취약]"
+        echo "$V 버전을 사용하고 있습니다."
+else
+        echo "U-30 Sendmail 버전 점검--------------------------------------[양호]"
+        echo "Sendmail을 사용하고 있지 않습니다."
+fi
+
+#echo "U-31 릴레이 제한"
+FILE=/etc/mail/sendmail.cf
+if [ "$UseSend" == "1" ]; then
+        CHECK=`cat $FILE | grep "R$\*" | grep "Relaying denied" | cut -c 1`
+
+        if [ $CHECK == '#' ] ; then
+                echo "U-31 릴레이 제한---------------------------------------------[취약]"
+                echo "SMTP 서비스를 사용하며 릴레이 제한이 설정되어 있지 않습니다."
+        else
+                echo "U-31 릴레이 제한---------------------------------------------[양호]"
+                echo "SMTP 서비스를 사용하며 릴레이 제한이 설정되어 있습니다."
+
+        fi
+else
+
+        echo "U-31 릴레이 제한---------------------------------------------[양호]"
+        echo "Sendmail을 사용하고 있지 않습니다."
+fi
+
+#echo "U-32 일반사용자의 Sendmail 실행 방지"
+if [ "$UseSend" == "1" ]; then
+        Prevent=$(cat /etc/mail/sendmail.cf | grep PrivacyOptions | grep restrictqrun)
+        if [ -z "$Prevent" ]; then
+                echo "U-32 일반사용자의 Sendmail 실행 방지-------------------------[취약]"
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있지 않음"
+        else
+                echo "U-32 일반사용자의 Sendmail 실행 방지-------------------------[양호]"
+                echo "일반 사용자의 Sendmail 실행 방지가 설정되어 있음"
+        fi
+else
+        echo "U-32 일반사용자의 Sendmail 실행 방지-------------------------[양호]"
+        echo "SMTP 서비스 사용하지 않음"
+fi
+
+#echo "U-33 보안 버전 패치"
+UseDns=$(ps -ef | grep named | awk '{print $3}' | sed -n -e '1p' )
+if [ "$UseDns" == "1" ]; then
+
+        named -v > version.log
+        cat version.log
+else
+        echo "U-33 보안 버전 패치------------------------------------------[양호]"
+        echo "DNS 사용하지 않음"
+fi
+
+#echo "U-34 DNS Zone Transfer 설정"
+if [ "$UseDns" == "1"  ]; then
+        ps -ef | grep named >> tmp.log
+        if [ -f /etc/named.rfc1912.zones ];then
+        Any=$(cat /etc/named.rfc1912.zones | grep 'allow-transfer' | awk '{print $3}')
+                if [ "$Any" != 'any;' ];then
+                        echo "U-34 DNS Zone Transfer 설정----------------------------------[양호]"
+                        echo "허가된 사용자만 허용"
+                else
+                        echo "U-34 DNS Zone Transfer 설정----------------------------------[취약]"
+                        echo "모든 사용자 허용"
+                fi
+        else
+                echo "/etc/named.rfc1912.zones 파일이 존재하지 않음"
+        fi
+        cat /etc/named.conf | grep 'allow-transfer'
+        rm tmp.log
+else
+        echo "U-34 DNS Zone Transfer 설정----------------------------------[양호]"
+        echo "DNS 서비스 미사용 중"
+fi
+
+
+
+ApacheLog=`hostname`"_Apache_Check_"`date +%F__%T`.txt
+
+#echo "U-35. Apache 디렉토리 리스팅 제거" >> $ApacheLog 2>&1
+ApacheOption=`cat /etc/httpd/conf/httpd.conf | grep Options | sed -n '1p'`
+if [[ $ApacheOption == *Indexes* ]]; then
+        echo "U-35 Apache 디렉토리 리스팅 제거 --------------------------- [취약]" # >> $ApacheLog 2>&1
+else
+        echo "U-35 Apache 디렉토리 리스팅 제거 --------------------------- [양호]" # >> $ApacheLog 2>&1
+fi
+
+#echo $(cat $ApacheLog)
+#echo >> $ApacheLog 2>&1
+
+# echo "U-36 Apache 웹 프로세스 권한 제한"
+# echo "U-36 Apache 웹 프로세스 권한 제한" >> $ApacheLog 2>&1
+ApacheUser=`cat /etc/httpd/conf/httpd.conf | grep User | sed -n '2p' | awk '{print $2}'`
+ApacheGroup=`cat /etc/httpd/conf/httpd.conf | grep Group | sed -n '2p' | awk '{print $2}'`
+
+if [ "$ApacheUser" != root ]; then
+        echo "U-36 현재 웹 프로세스 User 권한 : $ApacheUser ------------------- [양호]" #>> $ApacheLog 2>&1
+else
+        echo "U-36 현재 웹 프로세스 User 권한 : $ApacheUser ------------------- [취약]" #>> $ApacheLog 2>&1
+fi
+
+if [ "$ApacheGroup" != root ]; then
+        echo "U-36 현재 웹 프로세스 Group 권한 : $ApacheGroup ------------------ [양호]" #>> $ApacheLog 2>&1
+else
+        echo "U-36 현재 웹 프로세스 Group 권한 : $ApacheGroup ------------------ [취약]" #>> $ApacheLog 2>&1
+fi
+
+#echo
+#echo >> $ApacheLog 2>&1
+
+#echo "U-37 Apache 상위 디렉터리 접근 금지"
+#echo "U-37 Apache 상위 디렉터리 접근 금지" >> $ApacheLog 2>&1
+
+ApacheAuth=`cat /etc/httpd/conf/httpd.conf  | grep AllowOverride | sed -n '1p' | awk '{print $2}'`
+
+if [ $ApacheAuth = AuthConfig ]; then
+        echo "U-37 Apache 상위 디렉터리 접근 금지 ------------------------ [양호]" #>> $ApacheLog 2>&1
+        #echo >> $ApacheLog 2>&1
+else
+        echo "U-37 Apache 상위 디렉터리 접근 금지 ------------------------ [취약]" #>> $ApacheLog 2>&1
+fi
+
+#echo
+#echo >> $ApacheLog 2>&1
+
+
+#echo "U-38 Apache 불필요한 파일 제거"
+#echo "U-38 Apache 불필요한 파일 제거" >> $ApacheLog 2>&1
+ApacheCgi=`cat /etc/httpd/conf/httpd.conf | grep -v "^ *#" | grep "<Directory" | grep "cgi-bin" | wc -l`
+#echo >> $ApacheLog 2>&1
+echo "      [ Apache Home Directory 상에 설정 되어 있는 cgi-bin 삭제 할 것 ]" >> $ApacheLog 2>&1
+if [ $ApacheCgi -eq 0 ]; then
+        echo "U-38 Apache 불필요한 파일 제거 ----------------------------- [취약]" # >> $ApacheLog 2>&1
+else
+        echo "U-38 Apache 불필요한 파일 제거 ----------------------------- [양호]" # >> $ApacheLog 2>&1
+fi
+#echo
+#echo >> $ApacheLog 2>&1
+#echo "U-39 Apache 링크 사용 금지"
+#echo "U-39 Apache 링크 사용 금지" >> $ApacheLog 2>&1
+
+if [[ $ApacheOption == *FollowSymLinks* ]]; then
+        echo "U-39 Apache 링크 사용 금지 --------------------------------- [취약]" #>> $ApacheLog 2>&1
+else
+        echo "U-39 Apache 링크 사용 금지 --------------------------------- [양호]" #>> $ApacheLog 2>&1
+fi
+
+#echo
+#echo >> $ApacheLog 2>&1
+
+#echo "U-40 Apache 파일 업로드 및 다운로드 제한"
+#echo "U-40 Apache 파일 업로드 및 다운로드 제한" >> $ApacheLog 2>&1
+
+UpSpeed=`cat /etc/opt/remi/php74/php.ini 2>/dev/null |  grep post_max_size | awk '{print $3}'`
+DownSpeed=`cat /etc/httpd/conf/httpd.conf 2>/dev/null | grep LimitRequestBody | awk '{print $2}'`
+
+if [ $UpSpeed ]; then
+        echo "U-40 업로드 가능한 파일의 최대 용량 : $UpSpeed ----------- [양호]" #>> $ApacheLog 2>&1
+else
+        echo "U-40 업로드 가능한 파일의 최대 용량 : 제한없음 ------------- [취약]" #>> $ApacheLog 2>&1
+fi
+
+if [ $DownSpeed ]; then
+        echo "     다운로드 가능한 파일의 최대 용량 : $DownSpeed ---------- [양호]" #>> $ApacheLog 2>&1
+else
+        echo "     다운로드 가능한 파일의 최대 용량 : 제한없음 ----------- [취약]" #>> $ApacheLog 2>&1
+fi
+
+#echo
+#echo >> $ApacheLog 2>&1
+#echo "U-41 Apache 웹 서비스 영역 분리"
+#echo "U-41 Apache 웹 서비스 영역 분리" >> $ApacheLog 2>&1
+APDocRoot=`cat /etc/httpd/conf/httpd.conf | grep DocumentRoot | sed -n '2p' | awk '{print $2}'`
+APhtml="/var/it/"
+
+if [ $APDocRoot=$APhtml ]; then
+        echo "U-41 Apache 웹 서비스 영역 분리 ---------------------------- [취약]"
+        #echo "DocumentRoot에 설정된 디렉터리 : $APDocRoot -- [위험]" #>> $ApacheLog 2>&1
+else
+        echo "U-41 Apache 웹 서비스 영역 분리 ---------------------------- [양호]"
+        echo "DocumentRoot에 설정된 디렉터리 : $APDocRoot -- [양호]" #>> $ApacheLog 2>&1
+fi
+#echo
+#echo >> $ApacheLog 2>&1
+
+
+#echo "----------------------------------------------- 패치 관리 -----------------------------------------------" >> $ApacheLog 2>&1
+#echo "U-42 최신 보안패치 및 벤더 권고사항 적용"
+#echo "U-42 최신 보안패치 및 벤더 권고사항 적용" >> $ApacheLog 2>&1
+echo "U-42 'yum update (-y)'를 통해 설치된 패키지의 최신 패치를 설치 ----------- [권장]" #>> $ApacheLog 2>&1
+#echo
+#echo >> $ApacheLog 2>&1
+#echo >> $ApacheLog 2>&1
+
+
+#echo "----------------------------------------------- 로그 관리 -----------------------------------------------" >> $ApacheLog 2>&1
+#echo "U-43 로그의 정기적 검토 및 보고"
+#echo "U-43 로그의 정기적 검토 및 보고" >> $ApacheLog 2>&1
+echo "U-43 로그 기록에 대해 정기적 검토, 분석, 이에 대한 리포트 작성 및 보고 --- [권장]" #>> $ApacheLog 2>&1
+#echo
+#echo >> $ApacheLog 2>&1
+
+
+#echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------"
+#echo "-------------------------------------------- 취약점 체크 종료 -------------------------------------------" >> $ApacheLog 2>&1

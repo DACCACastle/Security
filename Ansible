@@ -1,0 +1,41 @@
+Ansible 정리
+
+    1  sudo -y install python-pip
+    2  sudo yum -y install python-pip
+    3  sudo pip install --upgrade pip
+    4  sudo pip install boto
+    5  sudo amazon-linux-extras install ansible2
+    6  sudo ssh-keygen -t rsa -b 4096 -f ~/.ssh/My-Ansible-key
+    7  sudo mkdir -p AWS_Ansible/group_vars/all/
+    8  cd AWS_Ansible/
+    9  touch playbook.yml
+   10  sudo touch playbook.yml
+   11  ansible-vault create group_vars/all/pass.yml
+   12  sudo ansible-vault create group_vars/all/pass.yml
+   13  sudo ansible-vault edit group_vars/all/pass.yml
+   35  sudo wget https://app-data-44677.s3.ap-northeast-2.amazonaws.com/shell.sh
+  186  ansible-playbook --ask-vault-pass playbook.yml 
+  
+  
+-- play book
+---
+- hosts: production
+  remote_user: ec2-user
+  become: true
+  tasks:
+    - name: Delete the log
+      file:
+       state: absent
+       path: "/home/ec2-user/LogCheck_{{ ansible_fqdn }}.txt"
+    - name: Send the script
+      copy:
+       src: /home/ec2-user/environment/shell.sh
+       dest: /home/ec2-user
+       mode: 0777
+    - name: Transfers the script
+      command: sh /home/ec2-user/shell.sh
+    - name: Log file Get
+      fetch:
+       src: "/home/ec2-user/LogCheck_{{ ansible_fqdn }}.txt"
+       dest: /home/ec2-user/environment/AWS_Ansible/Ansible_Log/
+       flat: yes
